@@ -1,0 +1,82 @@
+name: sample_app
+description: A new Flutter project.
+
+publish_to: 'none'
+
+version: 1.0.9+14
+
+environment:
+  sdk: '>=2.19.4 <3.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.3
+
+  # State manager stuffs
+  get: ^4.6.5
+
+  # Other widgets
+  shared_preferences: ^2.0.12
+  lottie: ^1.2.1
+  flutter_spinkit: ^5.1.0
+  shimmer: ^2.0.0
+
+  # Ads
+  google_mobile_ads: ^2.3.0
+  adjust_sdk: ^4.33.0
+
+  # Firebase stuffs
+  firebase_remote_config: ^3.0.3
+  firebase_analytics: ^10.0.4
+  firebase_core: ^2.1.1
+  firebase_crashlytics: ^3.0.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  # The "flutter_lints" package below contains a set of recommended lints to
+  # encourage good coding practices. The lint set provided by the package is
+  # activated in the `analysis_options.yaml` file located at the root of your
+  # package. See that file for information about deactivating specific lint
+  # rules and activating additional ones.
+  flutter_lints: ^2.0.1
+
+
+flutter:
+  uses-material-design: true
+
+  fonts:
+    - family: Roboto
+      fonts:
+        - asset: fonts/Roboto-Light.ttf
+          weight: 300
+        - asset: fonts/Roboto-Regular.ttf
+          weight: 400
+        - asset: fonts/Roboto-Medium.ttf
+          weight: 500
+        - asset: fonts/Roboto-Bold.ttf
+          weight: 600
+        - asset: fonts/Roboto-Black.ttf
+          weight: 700
+
+  assets:
+   - assets/icons/dot_select.png
+   - assets/icons/ic_person_bottombar.webp
+   - assets/icons/ic_setting_circular.png
+   - assets/icons/ic_setting.png
+   - assets/icons/ic_back_white.png
+   - assets/icons/ic_close.png
+   - assets/icons/ic_delete.png
+   - assets/icons/ic_options.png
+   - assets/icons/ic_selected_profile_bottombar.webp
+   - assets/icons/ic_unselected_profile_bottombar.webp
+   - assets/icons/ic_selected_home_bottombar.webp
+   - assets/icons/ic_unselected_home_bottombar.webp
+   - assets/icons/ic_info.png
+   - assets/images/ic_splash.png
+   - assets/images/dummy_girl.png
