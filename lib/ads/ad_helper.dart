@@ -15,6 +15,7 @@ class AdHelper {
 
   static String adsInterSplash = 'inter_splash';
   static String adsNativeLanguage = 'native_language';
+  static String adsAppOpenHigh = 'ads_app_open_high';
   static String adsResume = 'ads_resume';
   static String adsInterClickRun = 'inter_click_run';
   static String adsNativeHome = 'native_home';
@@ -45,36 +46,47 @@ class AdHelper {
   };
 
   static var androidAdUnitIds = {
-    adsInterSplash:
-        Debug.DEBUG ? androidTestAdUnitIds[adsInterstitial] : 'ca-app-pub-4584260126367940/2748183426',
-    adsNativeLanguage:
-        Debug.DEBUG ? androidTestAdUnitIds[adsNativeAdvanced] : 'ca-app-pub-4584260126367940/1738354089',
+    adsInterSplash: Debug.DEBUG
+        ? androidTestAdUnitIds[adsInterstitial]
+        : 'ca-app-pub-4584260126367940/2748183426',
+    adsNativeLanguage: Debug.DEBUG
+        ? androidTestAdUnitIds[adsNativeAdvanced]
+        : 'ca-app-pub-4584260126367940/1738354089',
+    adsAppOpenHigh:
+        Debug.DEBUG ? androidTestAdUnitIds[adsAppOpen] : 'ca-app-pub-4584260126367940/5690821786',
     adsResume:
         Debug.DEBUG ? androidTestAdUnitIds[adsAppOpen] : 'ca-app-pub-4584260126367940/5690821786',
-    adsInterClickRun:
-        Debug.DEBUG ? androidTestAdUnitIds[adsInterstitial] : 'ca-app-pub-4584260126367940/9425272415',
-    adsNativeHome:
-        Debug.DEBUG ? androidTestAdUnitIds[adsNativeAdvanced] : 'ca-app-pub-4584260126367940/3579663768',
+    adsInterClickRun: Debug.DEBUG
+        ? androidTestAdUnitIds[adsInterstitial]
+        : 'ca-app-pub-4584260126367940/9425272415',
+    adsNativeHome: Debug.DEBUG
+        ? androidTestAdUnitIds[adsNativeAdvanced]
+        : 'ca-app-pub-4584260126367940/3579663768',
     adsBannerHome:
         Debug.DEBUG ? androidTestAdUnitIds[adsBanner] : 'ca-app-pub-4584260126367940/4072428219',
   };
 
   static var androidAdUnitIdsCollapsible = {
-    adsBannerHome:
-        Debug.DEBUG ? androidTestAdUnitIds[adsBannerCollapsible] : 'ca-app-pub-4584260126367940/4072428219',
+    adsBannerHome: Debug.DEBUG
+        ? androidTestAdUnitIds[adsBannerCollapsible]
+        : 'ca-app-pub-4584260126367940/4072428219',
   };
 
   static var iOSAdUnitIds = {
     adsInterSplash:
         Debug.DEBUG ? iOSAdTestUnitIds[adsInterstitial] : 'ca-app-pub-4584260126367940/2748183426',
-    adsNativeLanguage:
-        Debug.DEBUG ? iOSAdTestUnitIds[adsNativeAdvanced] : 'ca-app-pub-4584260126367940/1738354089',
+    adsNativeLanguage: Debug.DEBUG
+        ? iOSAdTestUnitIds[adsNativeAdvanced]
+        : 'ca-app-pub-4584260126367940/1738354089',
+    adsAppOpenHigh:
+        Debug.DEBUG ? iOSAdTestUnitIds[adsAppOpen] : 'ca-app-pub-4584260126367940/5690821786',
     adsResume:
         Debug.DEBUG ? iOSAdTestUnitIds[adsAppOpen] : 'ca-app-pub-4584260126367940/5690821786',
     adsInterClickRun:
         Debug.DEBUG ? iOSAdTestUnitIds[adsInterstitial] : 'ca-app-pub-4584260126367940/9425272415',
-    adsNativeHome:
-        Debug.DEBUG ? iOSAdTestUnitIds[adsNativeAdvanced] : 'ca-app-pub-4584260126367940/3579663768',
+    adsNativeHome: Debug.DEBUG
+        ? iOSAdTestUnitIds[adsNativeAdvanced]
+        : 'ca-app-pub-4584260126367940/3579663768',
     adsBannerHome:
         Debug.DEBUG ? iOSAdTestUnitIds[adsBanner] : 'ca-app-pub-4584260126367940/4072428219',
   };

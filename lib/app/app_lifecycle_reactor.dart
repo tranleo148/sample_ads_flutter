@@ -44,8 +44,10 @@ class AppLifecycleReactor {
     // we're not already showing an app open ad.
     Debug.printLog('onSplashScreen:$_onSplashScreen');
 
+    // Do not show AppOpenAd if it disabled from remoteConfig or when user on SplashScreen
     bool enableAppOpenAd = FirebaseRemoteConfig.instance.getBool(AdHelper.adsResume);
     if (!enableAppOpenAd || _onSplashScreen) return;
+    // Show AppOpenAd when back to foreground but do not show on excluded screens and privacy policy screen
     if (appState == AppState.foreground) {
       if (!_isExcludeScreen && !_isPrivacyPolicyScreen) {
         AdsRepository.instance.showAppOpenAd(AdHelper.adsResume);

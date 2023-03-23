@@ -1,13 +1,13 @@
 import 'dart:async';
 
-import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../../ads/ad_helper.dart';
-import '../../main.dart';
 import '../../ads/ads_repository.dart';
+import '../../main.dart';
 import '../../utils/constant.dart';
 import '../../utils/preference.dart';
 import '../home/home_wizard_screen.dart';
@@ -48,24 +48,23 @@ class _SplashInterstitialAdsState extends State<SplashInterstitialAdsScreen>
 
   void _loadAds() {
     Debug.printLog('Started load SplashInterstitial Ad.');
-    if (FirebaseRemoteConfig.instance.getBool(AdHelper.adsInterSplash)) {
-      FirebaseAnalytics.instance.logEvent(name: 'inter_splash_request');
-      AdsRepository.instance.loadInterstitialAd(
+    if (FirebaseRemoteConfig.instance.getBool(AdHelper.adsAppOpenHigh)) {
+      AdsRepository.instance.loadSplashAdWithAppOpenAndInter(
+        AdHelper.adsAppOpenHigh,
         AdHelper.adsInterSplash,
-        onAdLoaded: () => FirebaseAnalytics.instance.logEvent(name: 'inter_splash_load_success'),
-        onAdFailedToLoad: () => FirebaseAnalytics.instance.logEvent(name: 'inter_splash_load_fail'),
-        onAdShowed: () => FirebaseAnalytics.instance.logEvent(name: 'inter_splash_show'),
         onNextAction: () => _navigateToHome(),
       );
       var countRetry = 20;
       Timer.periodic(const Duration(seconds: 1), (timer) {
-        Debug.printLog('Try to show splash_interstitial_ad: ${timer.tick}');
+        Debug.printLog('Try to show splash ads with AppOpen and Interstitial: ${timer.tick}');
         countRetry--;
-        InterstitialAd? interstitialAd =
-            AdsRepository.instance.getInterstitialAdById(AdHelper.adsInterSplash);
-        if (countRetry == 0 || interstitialAd != null) {
+        AdWithoutView? splashAd = AdsRepository.instance.getSplashAdIfAvailable(
+          AdHelper.adsAppOpenHigh,
+          AdHelper.adsInterSplash,
+        );
+        if (countRetry == 0 || splashAd != null) {
           timer.cancel();
-          _showInterstitialAd();
+          _showSplashAd(splashAd is AppOpenAd);
         }
       });
     } else {
@@ -73,26 +72,27 @@ class _SplashInterstitialAdsState extends State<SplashInterstitialAdsScreen>
     }
   }
 
-  void _showInterstitialAd() {
+  void _showSplashAd(bool isAppOpenAd) {
     setState(() {
       _isShowAdSplashInterstitial = true;
     });
 
-    AdsRepository.instance.showInterstitialAd(
-      AdHelper.adsInterSplash,
-      onNextAction: () => _navigateToHome(),
-    );
+    if (isAppOpenAd) {
+      AdsRepository.instance.showAppOpenSplashAd(
+        AdHelper.adsAppOpenHigh,
+        onNextAction: () => _navigateToHome(),
+      );
+    } else {
+      AdsRepository.instance.showInterstitialAd(
+        AdHelper.adsInterSplash,
+        onNextAction: () => _navigateToHome(),
+      );
+    }
   }
 
   void _navigateToHome() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(
-            builder: (context) =>
-            (isFirstTimeUser) ? const LanguageSelectionScreen() : const HomeWizardScreen()),
-            (route) => false,
-      );
+      Get.to(() => (isFirstTimeUser) ? const LanguageSelectionScreen() : const HomeWizardScreen());
       MyApp.appLifecycleReactor.setOnSplashScreen(false);
     });
   }

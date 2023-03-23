@@ -7,15 +7,14 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:get/get_core/src/get_main.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
-import 'ad_helper.dart';
-import 'ad_loading_controller.dart';
-import 'ad_loading_dialog.dart';
 import '../utils/constant.dart';
 import '../utils/preference.dart';
 import '../utils/utils.dart';
+import 'ad_helper.dart';
+import 'ad_loading_controller.dart';
+import 'ad_loading_dialog.dart';
 
 class AdsRepository {
   AdsRepository._();
@@ -55,8 +54,14 @@ class AdsRepository {
     return _bannerAds[adUnitId];
   }
 
-  AppOpenAd? _appOpenAd;
-  AppOpenAd? get appOpenAd => _appOpenAd;
+  final Map<String, AppOpenAd?> _appOpenAds = {};
+  AppOpenAd? getAppOpenAdById(String adUnitId) {
+    return _appOpenAds[adUnitId];
+  }
+
+  AdWithoutView? getSplashAdIfAvailable(String adUnitIdAppOpen, String adUnitIdInterstitial) {
+    return _appOpenAds[adUnitIdAppOpen] ?? _interstitialAds[adUnitIdInterstitial];
+  }
 
   /// Context for AdLoadingDialog
   BuildContext? _dialogContext;
@@ -73,13 +78,13 @@ class AdsRepository {
         onAdLoaded: (ad) {
           Debug.printLog('AppOpenAd [$adUnitId] loaded');
           _appOpenLoadTime = DateTime.now();
-          _appOpenAd = ad;
-          _appOpenAd?.onPaidEvent =
+          _appOpenAds[adUnitId] = ad;
+          _appOpenAds[adUnitId]?.onPaidEvent =
               (Ad ad, double valueMicros, PrecisionType precision, String currencyCode) {
             _sendPaidEventToFirebase(valueMicros, currencyCode, precision.name, adUnitId,
                 ad.responseInfo?.mediationAdapterClassName);
           };
-          _appOpenAd?.fullScreenContentCallback = FullScreenContentCallback(
+          _appOpenAds[adUnitId]?.fullScreenContentCallback = FullScreenContentCallback(
             onAdShowedFullScreenContent: (ad) {
               _isFullscreenAdShowing = true;
               Debug.printLog('$ad onAdShowedFullScreenContent');
@@ -89,14 +94,14 @@ class AdsRepository {
               //if (_dialogContext != null) Navigator.pop(_dialogContext!);
               Get.back();
               ad.dispose();
-              disposeAppOpenAd();
+              disposeAppOpenAd(adUnitId);
             },
             onAdDismissedFullScreenContent: (ad) {
               _isFullscreenAdShowing = false;
               //if (_dialogContext != null) Navigator.pop(_dialogContext!);
               Get.back();
               ad.dispose();
-              disposeAppOpenAd();
+              disposeAppOpenAd(adUnitId);
               loadAppOpenAd(adUnitId);
             },
             onAdImpression: (Ad ad) {
@@ -106,6 +111,70 @@ class AdsRepository {
         },
         onAdFailedToLoad: (error) {
           Debug.printLog('AppOpenAd [$adUnitId] failed to load: $error');
+        },
+      ),
+    );
+  }
+
+  void loadSplashAdWithAppOpenAndInter(String adUnitIdAppOpen, String adUnitIdInterstitial,
+      {Function? onNextAction, Widget? nextScreen}) {
+    AppOpenAd.load(
+      adUnitId: AdHelper.getAdUnitIdByType(adUnitIdAppOpen),
+      orientation: AppOpenAd.orientationPortrait,
+      request: AdRequest(nonPersonalizedAds: Utils.nonPersonalizedAds()),
+      adLoadCallback: AppOpenAdLoadCallback(
+        onAdLoaded: (ad) {
+          Debug.printLog('Splash AppOpenAd [$adUnitIdAppOpen] loaded');
+          _appOpenAds[adUnitIdAppOpen] = ad;
+          _appOpenAds[adUnitIdAppOpen]?.onPaidEvent =
+              (Ad ad, double valueMicros, PrecisionType precision, String currencyCode) {
+            _sendPaidEventToFirebase(valueMicros, currencyCode, precision.name, adUnitIdAppOpen,
+                ad.responseInfo?.mediationAdapterClassName);
+          };
+          _appOpenAds[adUnitIdAppOpen]?.fullScreenContentCallback = FullScreenContentCallback(
+            onAdShowedFullScreenContent: (ad) {
+              _isFullscreenAdShowing = true;
+              Debug.printLog('$ad onAdShowedFullScreenContent');
+            },
+            onAdFailedToShowFullScreenContent: (ad, error) {
+              _isFullscreenAdShowing = false;
+              if (onNextAction != null) {
+                Get.back();
+                onNextAction();
+              } else if (nextScreen != null) {
+                Get.off(() => nextScreen);
+              }
+              ad.dispose();
+              disposeAppOpenAd(adUnitIdAppOpen);
+            },
+            onAdDismissedFullScreenContent: (ad) {
+              _isFullscreenAdShowing = false;
+              if (onNextAction != null) {
+                Get.back();
+                onNextAction();
+              } else if (nextScreen != null) {
+                Get.off(() => nextScreen);
+              }
+              ad.dispose();
+              disposeAppOpenAd(adUnitIdAppOpen);
+              loadAppOpenAd(adUnitIdAppOpen);
+            },
+            onAdImpression: (Ad ad) {
+              Preference.increaseAdsDisplayCount();
+            },
+          );
+        },
+        onAdFailedToLoad: (error) {
+          Debug.printLog('Splash AppOpenAd [$adUnitIdAppOpen] failed to load: $error');
+          Debug.printLog('Try to load Splash InterstitialAd [$adUnitIdInterstitial]');
+          loadInterstitialAd(
+            AdHelper.adsInterSplash,
+            onNextAction: () {
+              if (onNextAction != null) {
+                onNextAction();
+              }
+            },
+          );
         },
       ),
     );
@@ -270,9 +339,9 @@ class AdsRepository {
     Adjust.trackAdRevenueNew(adRevenue);
   }
 
-  void disposeAppOpenAd() {
-    _appOpenAd?.dispose();
-    _appOpenAd = null;
+  void disposeAppOpenAd(String adUnitId) {
+    _appOpenAds[adUnitId]?.dispose();
+    _appOpenAds[adUnitId] = null;
   }
 
   void disposeInterstitialAdById(String adUnitId) {
@@ -296,13 +365,13 @@ class AdsRepository {
       if (onNextAction != null) onNextAction();
       return;
     }
-    if (_appOpenAd == null) {
+    if (_appOpenAds[adUnitId] == null) {
       loadAppOpenAd(adUnitId);
       return;
     }
     if (DateTime.now().subtract(_maxCacheDuration).isAfter(_appOpenLoadTime!)) {
       Debug.printLog('Maximum cache duration exceeded. Loading another AppOpenAd.');
-      disposeAppOpenAd();
+      disposeAppOpenAd(adUnitId);
       loadAppOpenAd(adUnitId);
       return;
     }
@@ -311,7 +380,35 @@ class AdsRepository {
     _showAdLoadingDialog();
     Timer(const Duration(milliseconds: 500), () {
       _showBlankDialog();
-      _appOpenAd?.show();
+      _appOpenAds[adUnitId]?.show();
+    });
+  }
+
+  void showAppOpenSplashAd(String adUnitId, {Function? onNextAction, Widget? nextScreen}) {
+    // Skip showing new ad if there is already exist an ad.
+    if (_isFullscreenAdShowing) {
+      if (onNextAction != null) onNextAction();
+      if (nextScreen != null) Get.to(() => nextScreen);
+      return;
+    }
+
+    // Show loading dialog first
+    _showAdLoadingDialog();
+    Timer(const Duration(milliseconds: 500), () {
+      _showBlankDialog();
+      AppOpenAd? appOpenAd = _appOpenAds[adUnitId];
+
+      if (appOpenAd != null && _readyToShowAds) {
+        appOpenAd.show();
+      } else {
+        if (onNextAction != null) {
+          Get.back();
+          onNextAction();
+        } else if (nextScreen != null) {
+          Get.off(() => nextScreen);
+        }
+      }
+      appOpenAd = null;
     });
   }
 
@@ -357,7 +454,7 @@ class AdsRepository {
     bool isCollapsible = false;
     if (Debug.USE_COLLAPSIBLE_BANNER) {
       String configBannerAd =
-      FirebaseRemoteConfig.instance.getString('${adUnitId}_collapsible').toUpperCase();
+          FirebaseRemoteConfig.instance.getString('${adUnitId}_collapsible').toUpperCase();
       isEnableBannerAd = (configBannerAd == 'TRUE' || configBannerAd == 'TRUE_COLLAPSIBLE');
       isCollapsible = configBannerAd == 'TRUE_COLLAPSIBLE';
     } else {

@@ -1,16 +1,14 @@
-
 import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import '../../ads/ad_helper.dart';
-import '../../custom/common_top_bar.dart';
-import '../../ads/native_ad_holder.dart';
-import '../../interfaces/top_bar_click_listener.dart';
-import '../../localization/language/languages.dart';
-import '../../localization/locale_constant.dart';
 import '../../ads/ads_repository.dart';
+import '../../ads/native_ad_holder.dart';
+import '../../custom/common_top_bar.dart';
+import '../../interfaces/top_bar_click_listener.dart';
+import '../../localization/locale_constant.dart';
 import '../../utils/color_const.dart';
 import '../../utils/constant.dart';
 
@@ -65,11 +63,11 @@ class _HomeScreenState extends State<HomeScreen> implements TopBarClickListener 
           Container(
             margin: EdgeInsets.only(left: fullWidth * 0.05),
             child: CommonTopBar(
-              Languages.of(context)!.txtRunTracker,
+              'Main Title',
               this,
               isShowSubheader: true,
-              subHeader: Languages.of(context)!.txtGoFasterSmarter,
-              isInfo: true,
+              subHeader: 'Sub-title',
+              isInfo: false,
             ),
           ),
           Expanded(
@@ -92,6 +90,5 @@ class _HomeScreenState extends State<HomeScreen> implements TopBarClickListener 
   }
 
   @override
-  void onTopBarClick(String name, {bool value = true}) {
-  }
+  void onTopBarClick(String name, {bool value = true}) {}
 }

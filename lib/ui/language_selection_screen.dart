@@ -1,24 +1,23 @@
+import 'dart:async';
+
 import 'package:firebase_remote_config/firebase_remote_config.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../ads/ad_helper.dart';
-import '../custom/gradient_button_small.dart';
+import '../ads/ads_repository.dart';
 import '../ads/native_ad_holder.dart';
+import '../custom/gradient_button_small.dart';
 import '../localization/language/languages.dart';
 import '../localization/language_data.dart';
 import '../localization/locale_constant.dart';
-import '../ads/ads_repository.dart';
 import '../utils/color_const.dart';
 import '../utils/preference.dart';
-import '../utils/utils.dart';
+import 'home/home_wizard_screen.dart';
 
 class LanguageSelectionScreen extends StatefulWidget {
-
-  const LanguageSelectionScreen(
-      {Key? key})
-      : super(key: key);
+  const LanguageSelectionScreen({Key? key}) : super(key: key);
 
   @override
   State<LanguageSelectionScreen> createState() => _LanguageSelectionState();
@@ -28,26 +27,20 @@ class _LanguageSelectionState extends State<LanguageSelectionScreen> {
   bool _loadedLanguage = false;
   late LanguageData _languagesChosenValue; // = LanguageData.languageList()[0];
   late List<LanguageData> languages; // = LanguageData.languageList();
+  bool _showLanguageList = false;
   String? prefLanguage;
-  int _nativeAdLoaded = 0;
+
+  int _nativeAdLoaded = -1;
   NativeAd? _nativeAd;
 
   @override
   void initState() {
-    if (FirebaseRemoteConfig.instance.getBool(AdHelper.adsNativeLanguage)) {
-      _nativeAd = AdsRepository.instance.loadNativeAd(AdHelper.adsNativeLanguage, () {
-        setState(() {
-          _nativeAdLoaded = 1;
-        });
-      }, () {
-        setState(() {
-          _nativeAdLoaded = -1;
-        });
-      });
-    } else {
-      _nativeAdLoaded = -1;
-    }
     super.initState();
+    WidgetsBinding.instance.endOfFrame.then(
+      (_) {
+        if (mounted) afterFirstLayout(context);
+      },
+    );
   }
 
   @override
@@ -63,6 +56,31 @@ class _LanguageSelectionState extends State<LanguageSelectionScreen> {
   void dispose() {
     AdsRepository.instance.disposeNativeAd(AdHelper.adsNativeLanguage);
     super.dispose();
+  }
+
+  FutureOr<void> afterFirstLayout(BuildContext context) {
+    // Get remoteConfig and load ADs process will take a time, so we will process them after the
+    // build() is completed to prevent delay when rendering the 1st frame
+    if (FirebaseRemoteConfig.instance.getBool(AdHelper.adsNativeLanguage)) {
+      setState(() {
+        _nativeAdLoaded = 0; // loading
+      });
+      _nativeAd = AdsRepository.instance.loadNativeAd(AdHelper.adsNativeLanguage, () {
+        setState(() {
+          _nativeAdLoaded = 1; // show ads
+        });
+      }, () {
+        setState(() {
+          _nativeAdLoaded = -1; // hide ads
+        });
+      });
+    }
+    // Show language listView
+    Future.delayed(const Duration(milliseconds: 100), () {
+      setState(() {
+        _showLanguageList = true;
+      });
+    });
   }
 
   void _getLanguages() {
@@ -95,84 +113,76 @@ class _LanguageSelectionState extends State<LanguageSelectionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    var fullHeight = MediaQuery.of(context).size.height;
-    var fullWidth = MediaQuery.of(context).size.width;
     return Scaffold(
-      body: Container(
-        height: MediaQuery.of(context).size.height,
-        width: MediaQuery.of(context).size.width,
-        color: Colur.common_bg_dark,
-        child: SafeArea(
-          child: Container(
-            height: fullHeight,
-            width: fullWidth,
-            color: Colur.common_bg_dark,
-            child: Column(
-              mainAxisSize: MainAxisSize.max,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.only(left: 8),
-                        child: Text(
-                          Languages.of(context)!.txtLanguageTitle,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w700,
-                            color: Colur.txt_dark,
-                            fontSize: 25,
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(
-                          Icons.check,
+      body: SafeArea(
+        child: Container(
+          color: Colur.common_bg_dark,
+          child: Column(
+            mainAxisSize: MainAxisSize.max,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.only(left: 8),
+                      child: Text(
+                        Languages.of(context)!.txtLanguageTitle,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
                           color: Colur.txt_dark,
+                          fontSize: 25,
                         ),
-                        iconSize: 30,
-                        onPressed: () async {
-
-                        },
                       ),
-                    ],
-                  ),
+                    ),
+                    IconButton(
+                      icon: const Icon(
+                        Icons.check,
+                        color: Colur.txt_dark,
+                      ),
+                      iconSize: 30,
+                      onPressed: () async {
+                        Preference.shared.setBool(Preference.IS_USER_FIRSTTIME, false);
+                        Get.to(() => const HomeWizardScreen());
+                      },
+                    ),
+                  ],
                 ),
-                Container(
-                  margin: const EdgeInsets.only(top: 5, left: 20),
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    Languages.of(context)!.txtSelectLanguage,
-                    style:
-                    const TextStyle(fontWeight: FontWeight.w400, color: Colur.txt_grey, fontSize: 15),
-                  ),
+              ),
+              Container(
+                margin: const EdgeInsets.only(top: 5, left: 20),
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  Languages.of(context)!.txtSelectLanguage,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w400, color: Colur.txt_grey, fontSize: 15),
                 ),
-                const SizedBox(height: 16),
-                Expanded(
-                  child: _languagesList(fullHeight),
-                ),
-                NativeAdHolder(
-                  loaded: _nativeAdLoaded,
-                  nativeAd: _nativeAd,
-                  adSize: 250,
-                ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: (_showLanguageList) ? _languagesList() : const SizedBox(),
+              ),
+              NativeAdHolder(
+                loaded: _nativeAdLoaded,
+                nativeAd: _nativeAd,
+                adSize: 250,
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _languagesList(double fullHeight) {
+  Widget _languagesList() {
     return ListView.separated(
       itemCount: languages.length,
       padding: const EdgeInsets.symmetric(horizontal: 15.0),
       shrinkWrap: true,
       itemBuilder: (BuildContext context, int index) {
-        return _languageView(context, index, fullHeight);
+        return _languageView(context, index);
       },
       separatorBuilder: (BuildContext context, int index) {
         return const SizedBox(height: 10);
@@ -181,7 +191,7 @@ class _LanguageSelectionState extends State<LanguageSelectionScreen> {
   }
 
   int selectedIdx = 0;
-  Widget _languageView(BuildContext context, int index, double fullheight) {
+  Widget _languageView(BuildContext context, int index) {
     return GradientButtonSmall(
       width: double.infinity,
       height: 40,
@@ -198,8 +208,8 @@ class _LanguageSelectionState extends State<LanguageSelectionScreen> {
         setState(() {
           selectedIdx = index;
           _languagesChosenValue = languages[index];
-          Preference.shared.setString(Preference.LANGUAGE, _languagesChosenValue!.languageCode);
-          changeLanguage(context, _languagesChosenValue!.languageCode);
+          Preference.shared.setString(Preference.LANGUAGE, _languagesChosenValue.languageCode);
+          changeLanguage(context, _languagesChosenValue.languageCode);
         });
       },
       child: Padding(
@@ -238,45 +248,6 @@ class _LanguageSelectionState extends State<LanguageSelectionScreen> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _languageSelector(double fullHeight) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Padding(padding: EdgeInsets.only(bottom: fullHeight * 0.025), child: Utils.getRightArrow()),
-        SizedBox(
-          width: 260,
-          height: fullHeight * 0.25,
-          child: CupertinoPicker(
-            useMagnifier: true,
-            magnification: 1.05,
-            selectionOverlay: const CupertinoPickerDefaultSelectionOverlay(
-              background: Colur.transparent,
-            ),
-            looping: true,
-            scrollController: FixedExtentScrollController(initialItem: 2),
-            onSelectedItemChanged: (value) {
-              setState(() {
-                _languagesChosenValue = languages[value];
-                Preference.shared
-                    .setString(Preference.LANGUAGE, _languagesChosenValue!.languageCode);
-                changeLanguage(context, _languagesChosenValue!.languageCode);
-              });
-            },
-            itemExtent: 60.0,
-            children: languages
-                .map((e) => Text(
-                      e.name,
-                      style: const TextStyle(
-                          color: Colur.txt_white, fontSize: 28, fontWeight: FontWeight.bold),
-                    ))
-                .toList(),
-          ),
-        ),
-        const SizedBox(width: 30),
-      ],
     );
   }
 }

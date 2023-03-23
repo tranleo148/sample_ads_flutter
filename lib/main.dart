@@ -17,11 +17,11 @@ import 'package:get/get_navigation/src/root/get_material_app.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import 'ads/ad_helper.dart';
+import 'ads/ads_repository.dart';
 import 'app/app_lifecycle_reactor.dart';
 import 'firebase_options.dart';
 import 'localization/locale_constant.dart';
 import 'localization/localizations_delegate.dart';
-import 'ads/ads_repository.dart';
 import 'ui/home/home_wizard_screen.dart';
 import 'ui/splash_screen/splash_interstitial_ads.dart';
 import 'utils/color_const.dart';
@@ -39,7 +39,8 @@ Future<void> main() async {
 
   _initAdjustSdk();
 
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+  // Enable fullscreen mode
+  //SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
   runApp(const MyApp());
 }
@@ -73,6 +74,7 @@ Future<void> _initRemoteConfig() async {
   await remoteConfig.setDefaults({
     AdHelper.adsInterSplash: false,
     AdHelper.adsNativeLanguage: false,
+    AdHelper.adsAppOpenHigh: false,
     AdHelper.adsResume: false,
     AdHelper.adsInterClickRun: false,
     AdHelper.adsNativeHome: false,
@@ -86,30 +88,27 @@ Future<void> _initRemoteConfig() async {
 Future<void> _initGoogleMobileAds() async {
   MobileAds.instance.initialize();
   if (Debug.DEBUG) {
-    MobileAds.instance.updateRequestConfiguration(RequestConfiguration(
-        testDeviceIds: [
-          '6193BF4850905CC9929CC4D64C85F00A',
-          'B7B3A9F6A4689B08D3005BB570573949'
-        ]));
+    MobileAds.instance.updateRequestConfiguration(RequestConfiguration(testDeviceIds: [
+      '6193BF4850905CC9929CC4D64C85F00A',
+      'B7B3A9F6A4689B08D3005BB570573949',
+      '417A812B5BBD0B1A8BDFEDD16ED43412'
+    ]));
   }
 }
 
 void _initAdjustSdk() {
-  AdjustConfig config = AdjustConfig(Constant.ADJUST_ID,
-      Debug.DEBUG ? AdjustEnvironment.sandbox : AdjustEnvironment.production);
-  config.logLevel =
-      Debug.DEBUG ? AdjustLogLevel.debug : AdjustLogLevel.suppress;
+  AdjustConfig config = AdjustConfig(
+      Constant.ADJUST_ID, Debug.DEBUG ? AdjustEnvironment.sandbox : AdjustEnvironment.production);
+  config.logLevel = Debug.DEBUG ? AdjustLogLevel.debug : AdjustLogLevel.suppress;
 
   config.attributionCallback = (AdjustAttribution attributionChangedData) {
     Debug.printLog('[Adjust]: Attribution changed!');
 
     if (attributionChangedData.trackerToken != null) {
-      Debug.printLog(
-          '[Adjust]: Tracker token: ${attributionChangedData.trackerToken!}');
+      Debug.printLog('[Adjust]: Tracker token: ${attributionChangedData.trackerToken!}');
     }
     if (attributionChangedData.trackerName != null) {
-      Debug.printLog(
-          '[Adjust]: Tracker name: ${attributionChangedData.trackerName!}');
+      Debug.printLog('[Adjust]: Tracker name: ${attributionChangedData.trackerName!}');
     }
     if (attributionChangedData.campaign != null) {
       Debug.printLog('[Adjust]: Campaign: ${attributionChangedData.campaign!}');
@@ -124,23 +123,19 @@ void _initAdjustSdk() {
       Debug.printLog('[Adjust]: Adgroup: ${attributionChangedData.adgroup!}');
     }
     if (attributionChangedData.clickLabel != null) {
-      Debug.printLog(
-          '[Adjust]: Click label: ${attributionChangedData.clickLabel!}');
+      Debug.printLog('[Adjust]: Click label: ${attributionChangedData.clickLabel!}');
     }
     if (attributionChangedData.adid != null) {
       Debug.printLog('[Adjust]: Adid: ${attributionChangedData.adid!}');
     }
     if (attributionChangedData.costType != null) {
-      Debug.printLog(
-          '[Adjust]: Cost type: ${attributionChangedData.costType!}');
+      Debug.printLog('[Adjust]: Cost type: ${attributionChangedData.costType!}');
     }
     if (attributionChangedData.costAmount != null) {
-      Debug.printLog(
-          '[Adjust]: Cost amount: ${attributionChangedData.costAmount!}');
+      Debug.printLog('[Adjust]: Cost amount: ${attributionChangedData.costAmount!}');
     }
     if (attributionChangedData.costCurrency != null) {
-      Debug.printLog(
-          '[Adjust]: Cost currency: ${attributionChangedData.costCurrency!}');
+      Debug.printLog('[Adjust]: Cost currency: ${attributionChangedData.costCurrency!}');
     }
   };
 
@@ -157,8 +152,7 @@ void _initAdjustSdk() {
       Debug.printLog('[Adjust]: Adid: ${sessionSuccessData.adid!}');
     }
     if (sessionSuccessData.jsonResponse != null) {
-      Debug.printLog(
-          '[Adjust]: JSON response: ${sessionSuccessData.jsonResponse!}');
+      Debug.printLog('[Adjust]: JSON response: ${sessionSuccessData.jsonResponse!}');
     }
   };
 
@@ -178,8 +172,7 @@ void _initAdjustSdk() {
       Debug.printLog('[Adjust]: Will retry: ${sessionFailureData.willRetry}');
     }
     if (sessionFailureData.jsonResponse != null) {
-      Debug.printLog(
-          '[Adjust]: JSON response: ${sessionFailureData.jsonResponse!}');
+      Debug.printLog('[Adjust]: JSON response: ${sessionFailureData.jsonResponse!}');
     }
   };
 
@@ -202,8 +195,7 @@ void _initAdjustSdk() {
       Debug.printLog('[Adjust]: Callback ID: ${eventSuccessData.callbackId!}');
     }
     if (eventSuccessData.jsonResponse != null) {
-      Debug.printLog(
-          '[Adjust]: JSON response: ${eventSuccessData.jsonResponse!}');
+      Debug.printLog('[Adjust]: JSON response: ${eventSuccessData.jsonResponse!}');
     }
   };
 
@@ -229,8 +221,7 @@ void _initAdjustSdk() {
       Debug.printLog('[Adjust]: Will retry: ${eventFailureData.willRetry}');
     }
     if (eventFailureData.jsonResponse != null) {
-      Debug.printLog(
-          '[Adjust]: JSON response: ${eventFailureData.jsonResponse!}');
+      Debug.printLog('[Adjust]: JSON response: ${eventFailureData.jsonResponse!}');
     }
   };
 
@@ -266,8 +257,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    MyApp.appLifecycleReactor = AppLifecycleReactor()
-      ..listenToAppStateChanges();
+    MyApp.appLifecycleReactor = AppLifecycleReactor()..listenToAppStateChanges();
   }
 
   @override
@@ -351,10 +341,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           child: SplashInterstitialAdsScreen(),
         ),
         routes: <String, WidgetBuilder>{
-          '/splashScreen': (BuildContext context) =>
-              const SplashInterstitialAdsScreen(),
-          '/homeWizardScreen': (BuildContext context) =>
-              const HomeWizardScreen(),
+          '/splashScreen': (BuildContext context) => const SplashInterstitialAdsScreen(),
+          '/homeWizardScreen': (BuildContext context) => const HomeWizardScreen(),
         });
   }
 }
