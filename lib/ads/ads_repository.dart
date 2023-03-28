@@ -31,6 +31,8 @@ class AdsRepository {
   /// Maximum duration allowed between loading and showing the ad.
   final Duration _maxCacheDuration = const Duration(hours: 4);
 
+  bool _highPriorityAdsLoadFailed = false;
+
   void onResume() {
     _readyToShowAds = true;
   }
@@ -60,7 +62,8 @@ class AdsRepository {
   }
 
   AdWithoutView? getSplashAdIfAvailable(String adUnitIdAppOpen, String adUnitIdInterstitial) {
-    return _appOpenAds[adUnitIdAppOpen] ?? _interstitialAds[adUnitIdInterstitial];
+    return _appOpenAds[adUnitIdAppOpen] ??
+        ((_highPriorityAdsLoadFailed) ? _interstitialAds[adUnitIdInterstitial] : null);
   }
 
   /// Context for AdLoadingDialog
@@ -69,7 +72,36 @@ class AdsRepository {
   /// Keep track of load time so we don't show an expired ad.
   DateTime? _appOpenLoadTime;
 
-  void loadAppOpenAd(String adUnitId) {
+  void loadSplashAdWithAppOpenAndInter(String adUnitIdAppOpen, String adUnitIdInterstitial,
+      {Function? onNextAction, Widget? nextScreen}) {
+    loadAppOpenAd(
+      AdHelper.adsAppOpenHigh,
+      onAdFailedToLoad: (error) {
+        // Allow to show Interstitial ad instead
+        _highPriorityAdsLoadFailed = true;
+      },
+      onNextAction: () {
+        if (onNextAction != null) {
+          onNextAction();
+        }
+      },
+    );
+    loadInterstitialAd(
+      AdHelper.adsInterSplash,
+      onNextAction: () {
+        if (onNextAction != null) {
+          onNextAction();
+        }
+      },
+    );
+  }
+
+  void loadAppOpenAd(String adUnitId,
+      {Function? onAdLoaded,
+      Function? onAdFailedToLoad,
+      Function? onAdShowed,
+      Function? onNextAction,
+      Widget? nextScreen}) {
     AppOpenAd.load(
       adUnitId: AdHelper.getAdUnitIdByType(adUnitId),
       orientation: AppOpenAd.orientationPortrait,
@@ -77,6 +109,7 @@ class AdsRepository {
       adLoadCallback: AppOpenAdLoadCallback(
         onAdLoaded: (ad) {
           Debug.printLog('AppOpenAd [$adUnitId] loaded');
+          if (onAdLoaded != null) onAdLoaded();
           _appOpenLoadTime = DateTime.now();
           _appOpenAds[adUnitId] = ad;
           _appOpenAds[adUnitId]?.onPaidEvent =
@@ -87,19 +120,28 @@ class AdsRepository {
           _appOpenAds[adUnitId]?.fullScreenContentCallback = FullScreenContentCallback(
             onAdShowedFullScreenContent: (ad) {
               _isFullscreenAdShowing = true;
+              if (onAdShowed != null) onAdShowed();
               Debug.printLog('$ad onAdShowedFullScreenContent');
             },
             onAdFailedToShowFullScreenContent: (ad, error) {
               _isFullscreenAdShowing = false;
-              //if (_dialogContext != null) Navigator.pop(_dialogContext!);
-              Get.back();
+              if (onNextAction != null) {
+                Get.back();
+                onNextAction();
+              } else if (nextScreen != null) {
+                Get.off(() => nextScreen);
+              }
               ad.dispose();
               disposeAppOpenAd(adUnitId);
             },
             onAdDismissedFullScreenContent: (ad) {
               _isFullscreenAdShowing = false;
-              //if (_dialogContext != null) Navigator.pop(_dialogContext!);
-              Get.back();
+              if (onNextAction != null) {
+                Get.back();
+                onNextAction();
+              } else if (nextScreen != null) {
+                Get.off(() => nextScreen);
+              }
               ad.dispose();
               disposeAppOpenAd(adUnitId);
               loadAppOpenAd(adUnitId);
@@ -111,70 +153,8 @@ class AdsRepository {
         },
         onAdFailedToLoad: (error) {
           Debug.printLog('AppOpenAd [$adUnitId] failed to load: $error');
-        },
-      ),
-    );
-  }
-
-  void loadSplashAdWithAppOpenAndInter(String adUnitIdAppOpen, String adUnitIdInterstitial,
-      {Function? onNextAction, Widget? nextScreen}) {
-    AppOpenAd.load(
-      adUnitId: AdHelper.getAdUnitIdByType(adUnitIdAppOpen),
-      orientation: AppOpenAd.orientationPortrait,
-      request: AdRequest(nonPersonalizedAds: Utils.nonPersonalizedAds()),
-      adLoadCallback: AppOpenAdLoadCallback(
-        onAdLoaded: (ad) {
-          Debug.printLog('Splash AppOpenAd [$adUnitIdAppOpen] loaded');
-          _appOpenAds[adUnitIdAppOpen] = ad;
-          _appOpenAds[adUnitIdAppOpen]?.onPaidEvent =
-              (Ad ad, double valueMicros, PrecisionType precision, String currencyCode) {
-            _sendPaidEventToFirebase(valueMicros, currencyCode, precision.name, adUnitIdAppOpen,
-                ad.responseInfo?.mediationAdapterClassName);
-          };
-          _appOpenAds[adUnitIdAppOpen]?.fullScreenContentCallback = FullScreenContentCallback(
-            onAdShowedFullScreenContent: (ad) {
-              _isFullscreenAdShowing = true;
-              Debug.printLog('$ad onAdShowedFullScreenContent');
-            },
-            onAdFailedToShowFullScreenContent: (ad, error) {
-              _isFullscreenAdShowing = false;
-              if (onNextAction != null) {
-                Get.back();
-                onNextAction();
-              } else if (nextScreen != null) {
-                Get.off(() => nextScreen);
-              }
-              ad.dispose();
-              disposeAppOpenAd(adUnitIdAppOpen);
-            },
-            onAdDismissedFullScreenContent: (ad) {
-              _isFullscreenAdShowing = false;
-              if (onNextAction != null) {
-                Get.back();
-                onNextAction();
-              } else if (nextScreen != null) {
-                Get.off(() => nextScreen);
-              }
-              ad.dispose();
-              disposeAppOpenAd(adUnitIdAppOpen);
-              loadAppOpenAd(adUnitIdAppOpen);
-            },
-            onAdImpression: (Ad ad) {
-              Preference.increaseAdsDisplayCount();
-            },
-          );
-        },
-        onAdFailedToLoad: (error) {
-          Debug.printLog('Splash AppOpenAd [$adUnitIdAppOpen] failed to load: $error');
-          Debug.printLog('Try to load Splash InterstitialAd [$adUnitIdInterstitial]');
-          loadInterstitialAd(
-            AdHelper.adsInterSplash,
-            onNextAction: () {
-              if (onNextAction != null) {
-                onNextAction();
-              }
-            },
-          );
+          _isFullscreenAdShowing = false;
+          if (onAdFailedToLoad != null) onAdFailedToLoad();
         },
       ),
     );
@@ -211,7 +191,7 @@ class AdsRepository {
                 Get.off(() => nextScreen);
               }
               ad.dispose();
-              disposeInterstitialAdById(adUnitId);
+              disposeInterstitialAd(adUnitId);
             },
             onAdFailedToShowFullScreenContent: (InterstitialAd ad, AdError adError) {
               _isFullscreenAdShowing = false;
@@ -222,7 +202,7 @@ class AdsRepository {
                 Get.off(() => nextScreen);
               }
               ad.dispose();
-              disposeInterstitialAdById(adUnitId);
+              disposeInterstitialAd(adUnitId);
             },
             onAdImpression: (Ad ad) {
               Preference.increaseAdsDisplayCount();
@@ -344,7 +324,7 @@ class AdsRepository {
     _appOpenAds[adUnitId] = null;
   }
 
-  void disposeInterstitialAdById(String adUnitId) {
+  void disposeInterstitialAd(String adUnitId) {
     _interstitialAds[adUnitId]?.dispose();
     _interstitialAds[adUnitId] = null;
   }

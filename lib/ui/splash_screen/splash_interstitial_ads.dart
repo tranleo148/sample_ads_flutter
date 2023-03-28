@@ -37,7 +37,6 @@ class _SplashInterstitialAdsState extends State<SplashInterstitialAdsScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    //AdsRepository.instance.disposeInterstitialAdById(AdHelper.adsInterSplash);
     super.dispose();
   }
 
@@ -82,11 +81,15 @@ class _SplashInterstitialAdsState extends State<SplashInterstitialAdsScreen>
         AdHelper.adsAppOpenHigh,
         onNextAction: () => _navigateToHome(),
       );
+      // Dispose interAd if available
+      AdsRepository.instance.disposeInterstitialAd(AdHelper.adsInterSplash);
     } else {
       AdsRepository.instance.showInterstitialAd(
         AdHelper.adsInterSplash,
         onNextAction: () => _navigateToHome(),
       );
+      // Dispose appOpenAd if available
+      AdsRepository.instance.disposeAppOpenAd(AdHelper.adsAppOpenHigh);
     }
   }
 
